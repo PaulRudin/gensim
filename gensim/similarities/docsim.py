@@ -280,10 +280,17 @@ class Similarity(interfaces.SimilarityABC):
         self.close_shard() # no-op if no documents added to index since last query
 
         results = []
+        offset=0
         for shard in self.shards:
             shard.num_best = self.num_best
             shard.normalize = self.normalize
-            results.append(shard[query])
+            shard_result = shard[query]
+            # if we're returning (id, sim) pairs then the indexes need to be changed
+            # is this test sufficient?
+            #if self.num_best is not None:
+            #    shard_result = [(doc_index + offset, sim) for (doc_index, sim) in shard_result]
+            results.append(shard_result)
+            offset += len(shard)
 
         if self.num_best is None:
             return numpy.hstack(results)

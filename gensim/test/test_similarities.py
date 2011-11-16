@@ -12,11 +12,15 @@ Automated tests for similarity algorithms (the similarities package).
 import logging
 import unittest
 import os
-import os.path
 import tempfile
 
 import numpy
+module_path = os.path.dirname(os.path.realpath(__file__)) # needed because sample data files are located in the same folder
+datapath = lambda fname: os.path.join(module_path, 'test_data', fname)
 
+# test this version of gensim - make sure we're first on the path
+import sys
+sys.path = [os.path.dirname(os.path.dirname(module_path))] + sys.path
 from gensim.corpora import mmcorpus, Dictionary
 from gensim import matutils, utils, similarities
 
@@ -73,16 +77,22 @@ class TestSimilarityABC(object):
         self.assertTrue(numpy.allclose(expected, sims))
 
 
-    def testNumBest(self):
+    def num_best(self, shardsize=5, num_best=3):
         if self.cls == similarities.Similarity:
-            index = self.cls(testfile(), corpus, num_features=len(dictionary), shardsize=5, num_best=3)
+            index = self.cls(testfile(), corpus, num_features=len(dictionary), 
+                             shardsize=shardsize, num_best=num_best)
         else:
-            index = self.cls(corpus, num_best=3)
+            index = self.cls(corpus, num_best=num_best)
         query = corpus[0]
         sims = index[query]
-        expected = [(0, 0.99999994), (2, 0.28867513), (3, 0.23570226)]
+        expected = [(0, 0.99999994), (2, 0.28867513), (3, 0.23570226)][:num_best]
         self.assertTrue(numpy.allclose(expected, sims))
 
+    def testNumBest(self):
+        self.num_best()
+
+    def testShardIndexing(self):
+        self.num_best(shardsize=2, num_best=1)
 
     def testChunking(self):
         if self.cls == similarities.Similarity:
