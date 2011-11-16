@@ -285,10 +285,19 @@ class Similarity(interfaces.SimilarityABC):
             shard.num_best = self.num_best
             shard.normalize = self.normalize
             shard_result = shard[query]
+
             # if we're returning (id, sim) pairs then the indexes need to be changed
-            # is this test sufficient?
-            #if self.num_best is not None:
-            #    shard_result = [(doc_index + offset, sim) for (doc_index, sim) in shard_result]
+            # need to identify the cases where this is so.
+            def convert(res):
+                return [(doc_index + offset, sim) for (doc_index, sim) in res]
+            # if num_best is none we get back an array
+
+            if (self.num_best is not None and
+                isinstance(shard_result, list)): # don't really like this
+                if shard_result and isinstance(shard_result[0], list): # or this
+                    shard_result = [convert(res) for res in shard_result]
+                else:
+                    shard_result = convert(shard_result)
             results.append(shard_result)
             offset += len(shard)
 
